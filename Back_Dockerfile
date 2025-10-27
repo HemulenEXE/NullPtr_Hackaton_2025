@@ -1,0 +1,23 @@
+# build stage 
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /app
+COPY . .
+RUN dotnet restore
+RUN dotnet publish -c Release -o /app/publish
+
+# runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+
+# создаём каталог под БД и выдаём права пользователю aspnet (UID 64198)
+RUN chown -R 64198:64198 /app
+
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:80
+EXPOSE 80
+
+# в aspnet:8.0 уже non-root (64198), можно явно:
+USER 64198
+
+ENTRYPOINT ["dotnet", "Back.dll"]
